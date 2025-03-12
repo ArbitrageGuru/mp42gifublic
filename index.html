@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video to GIF Ping-Pong Loop Converter</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .input-section {
+            margin-bottom: 30px;
+        }
+        .file-upload {
+            border: 2px dashed #3498db;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-bottom: 20px;
+        }
+        .file-upload:hover {
+            background-color: #f0f8ff;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .preview-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .preview-video {
+            max-width: 100%;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .convert-btn {
+            background-color: #2ecc71;
+            font-size: 16px;
+            padding: 12px 20px;
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .convert-btn:hover {
+            background-color: #27ae60;
+        }
+        .result-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .result-gif {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+            background-color: #000;
+        }
+        .download-btn {
+            background-color: #9b59b6;
+            margin-top: 10px;
+        }
+        .download-btn:hover {
+            background-color: #8e44ad;
+        }
+        .progress-container {
+            margin-top: 20px;
+        }
+        .progress-bar {
+            height: 10px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress {
+            height: 100%;
+            background-color: #3498db;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .status {
+            text-align: center;
+            margin-top: 10px;
+            color: #7f8c8d;
+        }
+        .hidden {
+            display: none;
+        }
+        .settings {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .settings h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Video to GIF Ping-Pong Loop Converter</h1>
+        
+        <div class="input-section">
+            <div class="file-upload" id="drop-area">
+                <input type="file" id="file-input" accept="video/mp4,video/webm,video/quicktime">
+                <p>Drop your video file here or <strong>click to browse</strong></p>
+                <p>(Supports MP4, WebM, MOV)</p>
+            </div>
+            
+            <div class="settings">
+                <h3>Conversion Settings</h3>
+                <div>
+                    <label for="start-time">Start Time (seconds):</label>
+                    <input type="number" id="start-time" value="0" min="0" step="0.1">
+                </div>
+                
+                <div>
+                    <label for="duration">Duration (seconds, max 5):</label>
+                    <input type="number" id="duration" value="3" min="0.5" max="5" step="0.5">
+                </div>
+                
+                <div>
+                    <label for="quality">Quality (lower = smaller file):</label>
+                    <input type="range" id="quality" min="1" max="10" value="7">
+                    <output for="quality" id="quality-value">7</output>
+                </div>
+                
+                <div>
+                    <label for="width">Max Width (pixels):</label>
+                    <input type="number" id="width" value="320" min="100" max="500">
+                    <small>Lower = smaller file</small>
+                </div>
+                
+                <div>
+                    <label for="fps">Frames Per Second:</label>
+                    <input type="number" id="fps" value="15" min="5" max="30">
+                    <small>Lower = smaller file</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="preview-container hidden" id="preview-container">
+            <h3>Preview</h3>
+            <video id="preview-video" class="preview-video" controls></video>
+            <button id="convert-btn" class="convert-btn">Convert to GIF Ping-Pong Loop</button>
+        </div>
+        
+        <div class="progress-container hidden" id="progress-container">
+            <div class="progress-bar">
+                <div class="progress" id="progress-bar"></div>
+            </div>
+            <div class="status" id="status">Processing...</div>
+        </div>
+        
+        <div class="result-container hidden" id="result-container">
+            <h3>Your Ping-Pong Looping GIF</h3>
+            <img id="result-gif" class="result-gif" alt="Ping-pong loop GIF">
+            <div id="file-size"></div>
+            <button id="download-btn" class="download-btn">Download GIF</button>
+        </div>
+    </div>
+
+    <!-- Include GIF.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+    
+    <script>
+        // DOM Elements
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const previewContainer = document.getElementById('preview-container');
+        const previewVideo = document.getElementById('preview-video');
+        const convertBtn = document.getElementById('convert-btn');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const statusElement = document.getElementById('status');
+        const resultContainer = document.getElementById('result-container');
+        const resultGif = document.getElementById('result-gif');
+        const fileSizeElement = document.getElementById('file-size');
+        const downloadBtn = document.getElementById('download-btn');
+        
+        // Settings Elements
+        const startTimeInput = document.getElementById('start-time');
+        const durationInput = document.getElementById('duration');
+        const qualityInput = document.getElementById('quality');
+        const qualityValue = document.getElementById('quality-value');
+        const widthInput = document.getElementById('width');
+        const fpsInput = document.getElementById('fps');
+        
+        // Variables
+        let selectedFile = null;
+        let videoObjectUrl = null;
+        let outputGifUrl = null;
+        
+        // Event Listeners
+        dropArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+        convertBtn.addEventListener('click', convertVideo);
+        downloadBtn.addEventListener('click', downloadGif);
+        qualityInput.addEventListener('input', () => {
+            qualityValue.textContent = qualityInput.value;
+        });
+        
+        // Drag and drop functionality
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        dropArea.addEventListener('dragenter', () => {
+            dropArea.style.backgroundColor = '#ebf5fb';
+        });
+        
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.style.backgroundColor = '';
+        });
+        
+        dropArea.addEventListener('drop', handleDrop);
+        
+        // Function to handle file selection from input
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('video/')) {
+                processVideoFile(file);
+            }
+        }
+        
+        // Function to handle drop event
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            dropArea.style.backgroundColor = '';
+            
+            if (file && file.type.startsWith('video/')) {
+                processVideoFile(file);
+            }
+        }
+        
+        // Process the selected video file
+        function processVideoFile(file) {
+            selectedFile = file;
+            
+            // Clean up previous video URL if exists
+            if (videoObjectUrl) {
+                URL.revokeObjectURL(videoObjectUrl);
+            }
+            
+            // Create a new URL for the video
+            videoObjectUrl = URL.createObjectURL(file);
+            
+            // Set the video source and show preview
+            previewVideo.src = videoObjectUrl;
+            previewContainer.classList.remove('hidden');
+            
+            // Hide result if previously shown
+            resultContainer.classList.add('hidden');
+            
+            // Set maximum duration based on video length
+            previewVideo.onloadedmetadata = () => {
+                const maxDuration = Math.min(5, previewVideo.duration);
+                durationInput.max = maxDuration;
+                durationInput.value = Math.min(3, maxDuration);
+                
+                // Reset start time
+                startTimeInput.max = previewVideo.duration - 0.5;
+                startTimeInput.value = 0;
+            };
+        }
+        
+        // Convert video to ping-pong looping GIF
+        async function convertVideo() {
+            if (!selectedFile) return;
+            
+            // Get settings
+            const startTime = parseFloat(startTimeInput.value) || 0;
+            const duration = Math.min(parseFloat(durationInput.value) || 3, 5);
+            const quality = parseInt(qualityInput.value) || 7;
+            const maxWidth = parseInt(widthInput.value) || 320;
+            const fps = parseInt(fpsInput.value) || 15;
+            
+            // Show progress container
+            progressContainer.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            resultContainer.classList.add('hidden');
+            
+            try {
+                // Create ping-pong looping GIF
+                const gifUrl = await createPingPongGif(previewVideo, startTime, duration, quality, maxWidth, fps);
+                outputGifUrl = gifUrl;
+                
+                // Display the result
+                resultGif.src = gifUrl;
+                
+                // Show file size approximation
+                fetch(gifUrl)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const fileSizeMB = blob.size / (1024 * 1024);
+                        fileSizeElement.textContent = `File size: ${fileSizeMB.toFixed(2)} MB`;
+                        fileSizeElement.style.color = fileSizeMB > 10 ? '#e74c3c' : '#2c3e50';
+                    });
+                
+                // Show result container
+                resultContainer.classList.remove('hidden');
+            } catch (error) {
+                console.error('Conversion error:', error);
+                statusElement.textContent = `Error: ${error.message}`;
+                statusElement.style.color = '#e74c3c';
+            } finally {
+                // Hide progress container
+                progressContainer.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+            }
+        }
+        
+        // Function to create ping-pong looping GIF
+        async function createPingPongGif(videoElement, startTime, duration, quality, maxWidth, fps) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    // Step 1: Capture frames during forward playback
+                    const frames = await captureVideoFrames(videoElement, startTime, duration, maxWidth, fps);
+                    
+                    // Update progress
+                    progressBar.style.width = '50%';
+                    statusElement.textContent = 'Processing captured frames...';
+                    
+                    // Step 2: Create ping-pong sequence
+                    const pingPongFrames = [
+                        ...frames,
+                        ...frames.slice(1, -1).reverse()
+                    ];
+                    
+                    // Step 3: Create GIF using GIF.js
+                    const gif = new GIF({
+                        workers: 2,
+                        quality: 11 - quality, // Quality in GIF.js: 1 = best, 10 = worst
+                        width: frames[0].width,
+                        height: frames[0].height,
+                        workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
+                    });
+                    
+                    // Add frames to GIF
+                    let frameIndex = 0;
+                    const totalFrames = pingPongFrames.length;
+                    
+                    for (const frameCanvas of pingPongFrames) {
+                        gif.addFrame(frameCanvas, { delay: 1000 / fps, copy: true });
+                        
+                        // Update progress periodically
+                        frameIndex++;
+                        if (frameIndex % 5 === 0 || frameIndex === totalFrames) {
+                            const percent = 50 + (frameIndex / totalFrames) * 40;
+                            progressBar.style.width = `${percent}%`;
+                            statusElement.textContent = `Creating GIF: ${Math.round(percent)}%`;
+                            // Allow UI to update
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+                    }
+                    
+                    // Render the GIF
+                    gif.on('progress', p => {
+                        const percent = 90 + p * 10;
+                        progressBar.style.width = `${percent}%`;
+                        statusElement.textContent = `Finalizing GIF: ${Math.round(percent)}%`;
+                    });
+                    
+                    gif.on('finished', blob => {
+                        progressBar.style.width = '100%';
+                        statusElement.textContent = 'Finished!';
+                        const gifUrl = URL.createObjectURL(blob);
+                        resolve(gifUrl);
+                    });
+                    
+                    // Start rendering
+                    gif.render();
+                    
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+        
+        // Function to capture video frames
+        async function captureVideoFrames(videoElement, startTime, duration, maxWidth, fps) {
+            return new Promise(async (resolve, reject) => {
+                try {
+                    // Create canvas for capturing frames
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Calculate dimensions while maintaining aspect ratio
+                    const scale = Math.min(1, maxWidth / videoElement.videoWidth);
+                    canvas.width = videoElement.videoWidth * scale;
+                    canvas.height = videoElement.videoHeight * scale;
+                    
+                    // Set video to start time
+                    videoElement.currentTime = startTime;
+                    await waitForVideoSeeked(videoElement);
+                    
+                    const endTime = startTime + duration;
+                    const totalFrames = Math.ceil(duration * fps);
+                    const frames = [];
+                    
+                    // Capture frames at regular intervals
+                    for (let i = 0; i < totalFrames; i++) {
+                        // Calculate target time for this frame
+                        const frameTime = startTime + (i / fps);
+                        
+                        // Don't go past the end time
+                        if (frameTime > endTime) break;
+                        
+                        // Set video to frame time
+                        videoElement.currentTime = frameTime;
+                        await waitForVideoSeeked(videoElement);
+                        
+                        // Draw current frame to canvas
+                        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                        
+                        // Create a new canvas for each frame (to avoid reference issues)
+                        const frameCanvas = document.createElement('canvas');
+                        frameCanvas.width = canvas.width;
+                        frameCanvas.height = canvas.height;
+                        const frameCtx = frameCanvas.getContext('2d');
+                        frameCtx.drawImage(canvas, 0, 0);
+                        
+                        // Add to frames array
+                        frames.push(frameCanvas);
+                        
+                        // Update progress
+                        const progress = (i + 1) / totalFrames;
+                        progressBar.style.width = `${Math.round(progress * 50)}%`;
+                        statusElement.textContent = `Capturing frames: ${Math.round(progress * 50)}%`;
+                        
+                        // Allow UI to update
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                    
+                    resolve(frames);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+        
+        // Function to wait for video to finish seeking
+        function waitForVideoSeeked(videoElement) {
+            return new Promise(resolve => {
+                function onSeeked() {
+                    videoElement.removeEventListener('seeked', onSeeked);
+                    resolve();
+                }
+                videoElement.addEventListener('seeked', onSeeked);
+            });
+        }
+        
+        // Function to download the GIF
+        function downloadGif() {
+            if (!outputGifUrl) return;
+            
+            const filename = selectedFile.name.split('.').slice(0, -1).join('.') + '_pingpong.gif';
+            
+            const a = document.createElement('a');
+            a.href = outputGifUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>
