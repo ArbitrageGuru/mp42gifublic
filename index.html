@@ -7,7 +7,7 @@
     <script type="module">
         import { createFFmpeg, fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.1/+esm';
         
-        const ffmpeg = createFFmpeg({ log: true });
+        const ffmpeg = createFFmpeg({ log: true, corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-st@0.10.0/dist/ffmpeg-core.js' });
         
         document.getElementById("videoUpload").addEventListener("change", function(event) {
             const file = event.target.files[0];
@@ -33,29 +33,40 @@
             progressBar.style.display = "block";
             progressBar.value = 0;
             
-            if (!ffmpeg.isLoaded()) {
-                await ffmpeg.load();
+            try {
+                if (!ffmpeg.isLoaded()) {
+                    await ffmpeg.load();
+                }
+            } catch (error) {
+                console.error("FFmpeg failed to load", error);
+                status.textContent = "Error: FFmpeg could not be initialized.";
+                return;
             }
             
             status.textContent = "FFmpeg loaded. Processing video...";
             
-            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
-            
-            ffmpeg.setProgress(({ ratio }) => {
-                progressBar.value = ratio * 100;
-            });
-            
-            await ffmpeg.run('-i', 'input.mp4', '-vf', 'reverse', '-preset', 'ultrafast', 'output.mp4');
-            
-            const outputData = ffmpeg.FS('readFile', 'output.mp4');
-            const blob = new Blob([outputData.buffer], { type: 'video/mp4' });
-            
-            downloadLink.href = URL.createObjectURL(blob);
-            downloadLink.style.display = "block";
-            downloadLink.textContent = "Download Processed Video";
-            
-            status.textContent = "Processing complete! Download your video.";
-            progressBar.style.display = "none";
+            try {
+                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
+                ffmpeg.setProgress(({ ratio }) => {
+                    progressBar.value = ratio * 100;
+                });
+                
+                await ffmpeg.run('-i', 'input.mp4', '-vf', 'reverse', '-preset', 'ultrafast', 'output.mp4');
+                
+                const outputData = ffmpeg.FS('readFile', 'output.mp4');
+                const blob = new Blob([outputData.buffer], { type: 'video/mp4' });
+                
+                downloadLink.href = URL.createObjectURL(blob);
+                downloadLink.style.display = "block";
+                downloadLink.textContent = "Download Processed Video";
+                
+                status.textContent = "Processing complete! Download your video.";
+                progressBar.style.display = "none";
+            } catch (error) {
+                console.error("Error during video processing", error);
+                status.textContent = "Error processing video. Try a different file.";
+                progressBar.style.display = "none";
+            }
         });
     </script>
 </head>
