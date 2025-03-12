@@ -215,7 +215,7 @@
     </div>
 
     <!-- Include GIF.js library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.min.js"></script>
     
     <script>
         // DOM Elements
@@ -393,7 +393,7 @@
                         quality: 11 - quality, // Quality in GIF.js: 1 = best, 10 = worst
                         width: frames[0].width,
                         height: frames[0].height,
-                        workerScript: 'https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js'
+                        workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.min.js'
                     });
                     
                     // Add frames to GIF
@@ -443,7 +443,7 @@
                 try {
                     // Create canvas for capturing frames
                     const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
                     
                     // Calculate dimensions while maintaining aspect ratio
                     const scale = Math.min(1, maxWidth / videoElement.videoWidth);
@@ -477,7 +477,7 @@
                         const frameCanvas = document.createElement('canvas');
                         frameCanvas.width = canvas.width;
                         frameCanvas.height = canvas.height;
-                        const frameCtx = frameCanvas.getContext('2d');
+                        const frameCtx = frameCanvas.getContext('2d', { willReadFrequently: true });
                         frameCtx.drawImage(canvas, 0, 0);
                         
                         // Add to frames array
