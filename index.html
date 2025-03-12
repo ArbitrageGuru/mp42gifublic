@@ -3,526 +3,489 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video to GIF Ping-Pong Loop Converter</title>
+    <title>MP4 Ping-Pong Creator</title>
+    <!-- FFmpeg.wasm official packages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg.js/3.1.9001/ffmpeg.min.js"></script>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
-        }
-        .container {
+            font-family: Arial, sans-serif;
             max-width: 800px;
             margin: 0 auto;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            background-color: #f5f5f5;
         }
         h1 {
+            color: #333;
             text-align: center;
-            color: #2c3e50;
-            margin-bottom: 30px;
         }
-        .input-section {
-            margin-bottom: 30px;
-        }
-        .file-upload {
-            border: 2px dashed #3498db;
-            border-radius: 5px;
+        .container {
+            background-color: white;
+            border-radius: 8px;
             padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-section {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 30px;
             text-align: center;
-            cursor: pointer;
-            transition: background-color 0.3s;
             margin-bottom: 20px;
+            transition: border-color 0.3s;
         }
-        .file-upload:hover {
-            background-color: #f0f8ff;
+        .upload-section:hover {
+            border-color: #888;
         }
-        input[type="file"] {
+        #videoPlayer {
+            width: 100%;
+            max-height: 450px;
+            margin: 20px 0;
             display: none;
         }
-        input[type="number"], input[type="range"] {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
+        #uploadBtn {
+            display: none;
+        }
+        label[for="uploadBtn"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            cursor: pointer;
             border-radius: 4px;
+            display: inline-block;
+            transition: background-color 0.3s;
         }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+        label[for="uploadBtn"]:hover {
+            background-color: #45a049;
         }
-        button {
-            background-color: #3498db;
+        #processBtn {
+            background-color: #2196F3;
             color: white;
             border: none;
             padding: 10px 15px;
-            border-radius: 5px;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
             transition: background-color 0.3s;
+            display: none;
+            width: 100%;
         }
-        button:hover {
-            background-color: #2980b9;
+        #processBtn:hover {
+            background-color: #0b7dda;
         }
-        button:disabled {
-            background-color: #95a5a6;
+        #processBtn:disabled {
+            background-color: #cccccc;
             cursor: not-allowed;
         }
-        .preview-container {
+        #status {
             margin-top: 20px;
-            border: 1px solid #ddd;
             padding: 10px;
-            border-radius: 5px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
         }
-        .preview-video {
-            max-width: 100%;
-            margin-bottom: 10px;
-            display: block;
-        }
-        .convert-btn {
-            background-color: #2ecc71;
-            font-size: 16px;
-            padding: 12px 20px;
-            display: block;
+        #progressContainer {
             width: 100%;
             margin-top: 20px;
-        }
-        .convert-btn:hover {
-            background-color: #27ae60;
-        }
-        .result-container {
-            margin-top: 30px;
-            text-align: center;
-        }
-        .result-gif {
-            max-width: 100%;
-            border: 1px solid #ddd;
-            margin-bottom: 15px;
-            background-color: #000;
-        }
-        .download-btn {
-            background-color: #9b59b6;
-            margin-top: 10px;
-        }
-        .download-btn:hover {
-            background-color: #8e44ad;
-        }
-        .progress-container {
-            margin-top: 20px;
-        }
-        .progress-bar {
-            height: 10px;
-            background-color: #ecf0f1;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .progress {
-            height: 100%;
-            background-color: #3498db;
-            width: 0%;
-            transition: width 0.3s;
-        }
-        .status {
-            text-align: center;
-            margin-top: 10px;
-            color: #7f8c8d;
-        }
-        .hidden {
             display: none;
         }
-        .settings {
-            background-color: #f9f9f9;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
+        progress {
+            width: 100%;
+            height: 20px;
         }
-        .settings h3 {
-            margin-top: 0;
-            color: #2c3e50;
+        #logContainer {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            display: none;
         }
-        .error {
-            color: #e74c3c;
-            text-align: center;
-            margin: 10px 0;
+        #videoInfo {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            display: none;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        .info-label {
+            font-weight: bold;
+        }
+        .note {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e6f7ff;
+            border-radius: 4px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
+    <h1>MP4 Ping-Pong Creator</h1>
     <div class="container">
-        <h1>Video to GIF Ping-Pong Loop Converter</h1>
+        <div class="upload-section" id="dropArea">
+            <p>Drag & drop your MP4 video or click to upload</p>
+            <input type="file" id="uploadBtn" accept="video/mp4">
+            <label for="uploadBtn">Choose Video File</label>
+        </div>
         
-        <div class="input-section">
-            <div class="file-upload" id="drop-area">
-                <input type="file" id="file-input" accept="video/mp4,video/webm,video/quicktime">
-                <p>Drop your video file here or <strong>click to browse</strong></p>
-                <p>(Supports MP4, WebM, MOV)</p>
+        <div id="videoInfo">
+            <div class="info-row">
+                <span class="info-label">Resolution:</span>
+                <span id="resolution">-</span>
             </div>
-            
-            <div class="settings">
-                <h3>Conversion Settings</h3>
-                <div>
-                    <label for="start-time">Start Time (seconds):</label>
-                    <input type="number" id="start-time" value="0" min="0" step="0.1">
-                </div>
-                
-                <div>
-                    <label for="duration">Duration (seconds, max 5):</label>
-                    <input type="number" id="duration" value="3" min="0.5" max="5" step="0.5">
-                </div>
-                
-                <div>
-                    <label for="quality">Quality (lower = smaller file):</label>
-                    <input type="range" id="quality" min="1" max="10" value="7">
-                    <output for="quality" id="quality-value">7</output>
-                </div>
-                
-                <div>
-                    <label for="width">Max Width (pixels):</label>
-                    <input type="number" id="width" value="320" min="100" max="500">
-                    <small>Lower = smaller file</small>
-                </div>
-                
-                <div>
-                    <label for="fps">Frames Per Second:</label>
-                    <input type="number" id="fps" value="15" min="5" max="30">
-                    <small>Lower = smaller file</small>
-                </div>
+            <div class="info-row">
+                <span class="info-label">Duration:</span>
+                <span id="duration">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Frame Rate:</span>
+                <span id="frameRate">-</span>
             </div>
         </div>
         
-        <div class="preview-container hidden" id="preview-container">
-            <h3>Preview</h3>
-            <video id="preview-video" class="preview-video" controls></video>
-            <button id="convert-btn" class="convert-btn">Convert to GIF Ping-Pong Loop</button>
+        <video id="videoPlayer" controls></video>
+        
+        <button id="processBtn">Create MP4 Forward/Backward Video</button>
+        
+        <div id="progressContainer">
+            <p id="progressText">Processing video...</p>
+            <progress id="progressBar" value="0" max="100"></progress>
         </div>
         
-        <div class="progress-container hidden" id="progress-container">
-            <div class="progress-bar">
-                <div class="progress" id="progress-bar"></div>
-            </div>
-            <div class="status" id="status">Processing...</div>
-        </div>
+        <div id="status"></div>
         
-        <div class="result-container hidden" id="result-container">
-            <h3>Your Ping-Pong Looping GIF</h3>
-            <img id="result-gif" class="result-gif" alt="Ping-pong loop GIF">
-            <div id="file-size"></div>
-            <button id="download-btn" class="download-btn">Download GIF</button>
+        <div id="logContainer"></div>
+        
+        <div class="note">
+            <p><strong>Important:</strong> This tool uses FFmpeg.js to process videos in your browser. For optimal results:</p>
+            <ul>
+                <li>Use smaller videos (under 30 seconds) for faster processing</li>
+                <li>Processing happens entirely in your browser, using your computer's resources</li>
+                <li>Keep this tab open during processing</li>
+            </ul>
         </div>
     </div>
 
-    <!-- Include GIF.js library -->
-    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.min.js"></script>
-    
     <script>
-        // DOM Elements
-        const dropArea = document.getElementById('drop-area');
-        const fileInput = document.getElementById('file-input');
-        const previewContainer = document.getElementById('preview-container');
-        const previewVideo = document.getElementById('preview-video');
-        const convertBtn = document.getElementById('convert-btn');
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
-        const statusElement = document.getElementById('status');
-        const resultContainer = document.getElementById('result-container');
-        const resultGif = document.getElementById('result-gif');
-        const fileSizeElement = document.getElementById('file-size');
-        const downloadBtn = document.getElementById('download-btn');
-        
-        // Settings Elements
-        const startTimeInput = document.getElementById('start-time');
-        const durationInput = document.getElementById('duration');
-        const qualityInput = document.getElementById('quality');
-        const qualityValue = document.getElementById('quality-value');
-        const widthInput = document.getElementById('width');
-        const fpsInput = document.getElementById('fps');
-        
-        // Variables
-        let selectedFile = null;
-        let videoObjectUrl = null;
-        let outputGifUrl = null;
-        
-        // Event Listeners
-        dropArea.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', handleFileSelect);
-        convertBtn.addEventListener('click', convertVideo);
-        downloadBtn.addEventListener('click', downloadGif);
-        qualityInput.addEventListener('input', () => {
-            qualityValue.textContent = qualityInput.value;
-        });
-        
-        // Drag and drop functionality
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropArea.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        dropArea.addEventListener('dragenter', () => {
-            dropArea.style.backgroundColor = '#ebf5fb';
-        });
-        
-        dropArea.addEventListener('dragleave', () => {
-            dropArea.style.backgroundColor = '';
-        });
-        
-        dropArea.addEventListener('drop', handleDrop);
-        
-        // Function to handle file selection from input
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('video/')) {
-                processVideoFile(file);
-            }
-        }
-        
-        // Function to handle drop event
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            const file = dt.files[0];
-            dropArea.style.backgroundColor = '';
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const uploadBtn = document.getElementById('uploadBtn');
+            const videoPlayer = document.getElementById('videoPlayer');
+            const dropArea = document.getElementById('dropArea');
+            const processBtn = document.getElementById('processBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const statusDiv = document.getElementById('status');
+            const logContainer = document.getElementById('logContainer');
+            const videoInfo = document.getElementById('videoInfo');
+            const resolutionSpan = document.getElementById('resolution');
+            const durationSpan = document.getElementById('duration');
+            const frameRateSpan = document.getElementById('frameRate');
             
-            if (file && file.type.startsWith('video/')) {
-                processVideoFile(file);
-            }
-        }
-        
-        // Process the selected video file
-        function processVideoFile(file) {
-            selectedFile = file;
-            
-            // Clean up previous video URL if exists
-            if (videoObjectUrl) {
-                URL.revokeObjectURL(videoObjectUrl);
-            }
-            
-            // Create a new URL for the video
-            videoObjectUrl = URL.createObjectURL(file);
-            
-            // Set the video source and show preview
-            previewVideo.src = videoObjectUrl;
-            previewContainer.classList.remove('hidden');
-            
-            // Hide result if previously shown
-            resultContainer.classList.add('hidden');
-            
-            // Set maximum duration based on video length
-            previewVideo.onloadedmetadata = () => {
-                const maxDuration = Math.min(5, previewVideo.duration);
-                durationInput.max = maxDuration;
-                durationInput.value = Math.min(3, maxDuration);
-                
-                // Reset start time
-                startTimeInput.max = previewVideo.duration - 0.5;
-                startTimeInput.value = 0;
+            // Variables
+            let originalVideoBlob = null;
+            let isProcessing = false;
+            let videoMetadata = {
+                width: 0,
+                height: 0,
+                duration: 0,
+                frameRate: 0
             };
-        }
-        
-        // Convert video to ping-pong looping GIF
-        async function convertVideo() {
-            if (!selectedFile) return;
             
-            // Get settings
-            const startTime = parseFloat(startTimeInput.value) || 0;
-            const duration = Math.min(parseFloat(durationInput.value) || 3, 5);
-            const quality = parseInt(qualityInput.value) || 7;
-            const maxWidth = parseInt(widthInput.value) || 320;
-            const fps = parseInt(fpsInput.value) || 15;
+            // Handle file upload
+            uploadBtn.addEventListener('change', handleFileSelect);
             
-            // Show progress container
-            progressContainer.classList.remove('hidden');
-            previewContainer.classList.add('hidden');
-            resultContainer.classList.add('hidden');
+            // Handle drag and drop
+            dropArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.style.borderColor = '#2196F3';
+            });
             
-            try {
-                // Create ping-pong looping GIF
-                const gifUrl = await createPingPongGif(previewVideo, startTime, duration, quality, maxWidth, fps);
-                outputGifUrl = gifUrl;
+            dropArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.style.borderColor = '#ccc';
+            });
+            
+            dropArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.style.borderColor = '#ccc';
                 
-                // Display the result
-                resultGif.src = gifUrl;
+                if (e.dataTransfer.files.length) {
+                    uploadBtn.files = e.dataTransfer.files;
+                    handleFileSelect(e);
+                }
+            });
+            
+            // Process button click handler
+            processBtn.addEventListener('click', function() {
+                if (isProcessing) return;
+                if (!originalVideoBlob) {
+                    showStatus('Please upload a video first.', 'error');
+                    return;
+                }
                 
-                // Show file size approximation
-                fetch(gifUrl)
-                    .then(response => response.blob())
-                    .then(blob => {
-                        const fileSizeMB = blob.size / (1024 * 1024);
-                        fileSizeElement.textContent = `File size: ${fileSizeMB.toFixed(2)} MB`;
-                        fileSizeElement.style.color = fileSizeMB > 10 ? '#e74c3c' : '#2c3e50';
+                // Start processing
+                isProcessing = true;
+                processBtn.disabled = true;
+                processBtn.textContent = 'Processing...';
+                progressContainer.style.display = 'block';
+                logContainer.style.display = 'block';
+                showStatus('Creating ping-pong video... This may take a while.', 'info');
+                
+                // Create ping-pong video
+                createPingPongVideo();
+            });
+            
+            // Handle file selection
+            function handleFileSelect(e) {
+                const file = uploadBtn.files[0];
+                if (!file) return;
+                
+                if (file.type !== 'video/mp4') {
+                    showStatus('Please upload an MP4 video.', 'error');
+                    return;
+                }
+                
+                // Store the original video
+                originalVideoBlob = file;
+                
+                // Create a URL for the video
+                const videoURL = URL.createObjectURL(file);
+                videoPlayer.src = videoURL;
+                videoPlayer.style.display = 'block';
+                
+                // Get video metadata
+                videoPlayer.onloadedmetadata = function() {
+                    // Show process button
+                    processBtn.style.display = 'block';
+                    
+                    // Update video metadata
+                    videoMetadata.width = videoPlayer.videoWidth;
+                    videoMetadata.height = videoPlayer.videoHeight;
+                    videoMetadata.duration = videoPlayer.duration;
+                    
+                    // Estimate frame rate
+                    estimateFrameRate(videoPlayer, function(fps) {
+                        videoMetadata.frameRate = fps || 30;
+                        
+                        // Update video info display
+                        resolutionSpan.textContent = `${videoMetadata.width}×${videoMetadata.height}`;
+                        durationSpan.textContent = `${videoMetadata.duration.toFixed(2)} seconds`;
+                        frameRateSpan.textContent = `${videoMetadata.frameRate.toFixed(2)} fps`;
+                        
+                        // Show video info
+                        videoInfo.style.display = 'block';
+                        
+                        showStatus('Video loaded. Click the button below to create a forward/backward version.', 'success');
                     });
+                };
                 
-                // Show result container
-                resultContainer.classList.remove('hidden');
-            } catch (error) {
-                console.error('Conversion error:', error);
-                statusElement.textContent = `Error: ${error.message}`;
-                statusElement.style.color = '#e74c3c';
-            } finally {
-                // Hide progress container
-                progressContainer.classList.add('hidden');
-                previewContainer.classList.remove('hidden');
+                videoPlayer.onerror = function() {
+                    showStatus('Error loading video. Please try a different file.', 'error');
+                };
             }
-        }
-        
-        // Function to create ping-pong looping GIF
-        async function createPingPongGif(videoElement, startTime, duration, quality, maxWidth, fps) {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    // Step 1: Capture frames during forward playback
-                    const frames = await captureVideoFrames(videoElement, startTime, duration, maxWidth, fps);
-                    
-                    // Update progress
-                    progressBar.style.width = '50%';
-                    statusElement.textContent = 'Processing captured frames...';
-                    
-                    // Step 2: Create ping-pong sequence
-                    const pingPongFrames = [
-                        ...frames,
-                        ...frames.slice(1, -1).reverse()
-                    ];
-                    
-                    // Step 3: Create GIF using GIF.js
-                    const gif = new GIF({
-                        workers: 2,
-                        quality: 11 - quality, // Quality in GIF.js: 1 = best, 10 = worst
-                        width: frames[0].width,
-                        height: frames[0].height,
-                        workerScript: 'https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.min.js'
-                    });
-                    
-                    // Add frames to GIF
-                    let frameIndex = 0;
-                    const totalFrames = pingPongFrames.length;
-                    
-                    for (const frameCanvas of pingPongFrames) {
-                        gif.addFrame(frameCanvas, { delay: 1000 / fps, copy: true });
+            
+            // Estimate video frame rate
+            function estimateFrameRate(video, callback) {
+                const MAX_FRAMES = 10;
+                const timeSamples = [];
+                let frameCount = 0;
+                
+                video.currentTime = 0;
+                video.play();
+                
+                function captureFrame() {
+                    if (frameCount >= MAX_FRAMES) {
+                        video.pause();
+                        video.currentTime = 0;
                         
-                        // Update progress periodically
-                        frameIndex++;
-                        if (frameIndex % 5 === 0 || frameIndex === totalFrames) {
-                            const percent = 50 + (frameIndex / totalFrames) * 40;
-                            progressBar.style.width = `${percent}%`;
-                            statusElement.textContent = `Creating GIF: ${Math.round(percent)}%`;
-                            // Allow UI to update
-                            await new Promise(resolve => setTimeout(resolve, 0));
+                        // Calculate average fps from time differences
+                        const timeDiffs = [];
+                        for (let i = 1; i < timeSamples.length; i++) {
+                            timeDiffs.push(timeSamples[i] - timeSamples[i-1]);
                         }
+                        
+                        if (timeDiffs.length > 0) {
+                            const avgTimeDiff = timeDiffs.reduce((sum, diff) => sum + diff, 0) / timeDiffs.length;
+                            const fps = 1000 / avgTimeDiff;
+                            callback(fps);
+                        } else {
+                            callback(30); // Default fallback
+                        }
+                        return;
                     }
                     
-                    // Render the GIF
-                    gif.on('progress', p => {
-                        const percent = 90 + p * 10;
-                        progressBar.style.width = `${percent}%`;
-                        statusElement.textContent = `Finalizing GIF: ${Math.round(percent)}%`;
-                    });
+                    timeSamples.push(performance.now());
+                    frameCount++;
                     
-                    gif.on('finished', blob => {
-                        progressBar.style.width = '100%';
-                        statusElement.textContent = 'Finished!';
-                        const gifUrl = URL.createObjectURL(blob);
-                        resolve(gifUrl);
-                    });
-                    
-                    // Start rendering
-                    gif.render();
-                    
-                } catch (error) {
-                    reject(error);
+                    requestAnimationFrame(captureFrame);
                 }
-            });
-        }
-        
-        // Function to capture video frames
-        async function captureVideoFrames(videoElement, startTime, duration, maxWidth, fps) {
-            return new Promise(async (resolve, reject) => {
-                try {
-                    // Create canvas for capturing frames
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-                    
-                    // Calculate dimensions while maintaining aspect ratio
-                    const scale = Math.min(1, maxWidth / videoElement.videoWidth);
-                    canvas.width = videoElement.videoWidth * scale;
-                    canvas.height = videoElement.videoHeight * scale;
-                    
-                    // Set video to start time
-                    videoElement.currentTime = startTime;
-                    await waitForVideoSeeked(videoElement);
-                    
-                    const endTime = startTime + duration;
-                    const totalFrames = Math.ceil(duration * fps);
-                    const frames = [];
-                    
-                    // Capture frames at regular intervals
-                    for (let i = 0; i < totalFrames; i++) {
-                        // Calculate target time for this frame
-                        const frameTime = startTime + (i / fps);
+                
+                requestAnimationFrame(captureFrame);
+            }
+            
+            // Create ping-pong video using FFmpeg.js
+            function createPingPongVideo() {
+                if (typeof FFmpeg === 'undefined') {
+                    showStatus('FFmpeg not available. Please try a different browser or check your internet connection.', 'error');
+                    resetUI();
+                    return;
+                }
+                
+                // Read the file
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        logMessage('Starting video processing...');
+                        progressBar.value = 5;
                         
-                        // Don't go past the end time
-                        if (frameTime > endTime) break;
+                        // Convert file to Uint8Array
+                        const videoData = new Uint8Array(e.target.result);
                         
-                        // Set video to frame time
-                        videoElement.currentTime = frameTime;
-                        await waitForVideoSeeked(videoElement);
+                        // Create worker
+                        logMessage('Initializing FFmpeg...');
+                        const worker = new FFmpeg({
+                            MEMFS: [{ name: "input.mp4", data: videoData }],
+                            arguments: [
+                                // Input file
+                                '-i', 'input.mp4',
+                                // Filter to create forward then reverse
+                                '-filter_complex', '[0:v]split[v1][v2];[v2]reverse[v2r];[v1][v2r]concat=n=2:v=1:a=0',
+                                // Output high quality MP4
+                                '-c:v', 'libx264',
+                                '-preset', 'medium',
+                                '-crf', '23',
+                                '-r', Math.round(videoMetadata.frameRate).toString(),
+                                '-pix_fmt', 'yuv420p',
+                                // Output file
+                                'output.mp4'
+                            ],
+                            // Print progress
+                            print: function(data) { 
+                                logMessage(data);
+                            },
+                            // Print errors
+                            printErr: function(data) { 
+                                logMessage('Error: ' + data);
+                            },
+                            // Progress update
+                            progress: function(progress) {
+                                if (progress.time) {
+                                    const percent = Math.min(95, (progress.time / (videoMetadata.duration * 2)) * 100);
+                                    progressBar.value = percent;
+                                    progressText.textContent = `Processing: ${percent.toFixed(1)}%`;
+                                }
+                            }
+                        });
                         
-                        // Draw current frame to canvas
-                        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-                        
-                        // Create a new canvas for each frame (to avoid reference issues)
-                        const frameCanvas = document.createElement('canvas');
-                        frameCanvas.width = canvas.width;
-                        frameCanvas.height = canvas.height;
-                        const frameCtx = frameCanvas.getContext('2d', { willReadFrequently: true });
-                        frameCtx.drawImage(canvas, 0, 0);
-                        
-                        // Add to frames array
-                        frames.push(frameCanvas);
-                        
-                        // Update progress
-                        const progress = (i + 1) / totalFrames;
-                        progressBar.style.width = `${Math.round(progress * 50)}%`;
-                        statusElement.textContent = `Capturing frames: ${Math.round(progress * 50)}%`;
-                        
-                        // Allow UI to update
-                        await new Promise(resolve => setTimeout(resolve, 0));
+                        // Run the command
+                        logMessage('Processing video (this may take a while)...');
+                        worker.run().then(function(result) {
+                            logMessage('Processing complete!');
+                            progressBar.value = 98;
+                            
+                            // Find output file in memory
+                            const output = result.MEMFS.find(file => file.name === 'output.mp4');
+                            
+                            if (!output) {
+                                throw new Error('Output file not found');
+                            }
+                            
+                            // Create a blob from the processed data
+                            const processedBlob = new Blob([output.data], { type: 'video/mp4' });
+                            
+                            // Create download link
+                            const url = URL.createObjectURL(processedBlob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'ping_pong_video.mp4';
+                            document.body.appendChild(a);
+                            
+                            // Trigger download
+                            logMessage('Download starting...');
+                            a.click();
+                            
+                            // Clean up
+                            setTimeout(() => {
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                            }, 100);
+                            
+                            // All done
+                            progressBar.value = 100;
+                            showStatus('MP4 ping-pong video created successfully!', 'success');
+                            
+                            // Reset UI after a delay
+                            setTimeout(resetUI, 2000);
+                        }).catch(function(error) {
+                            console.error('Processing error:', error);
+                            logMessage(`Error: ${error.message || error}`);
+                            showStatus('Error creating video. See log for details.', 'error');
+                            resetUI();
+                        });
+                    } catch (error) {
+                        console.error('Setup error:', error);
+                        logMessage(`Error: ${error.message || error}`);
+                        showStatus('Error setting up video processing. Try a different browser.', 'error');
+                        resetUI();
                     }
-                    
-                    resolve(frames);
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        }
-        
-        // Function to wait for video to finish seeking
-        function waitForVideoSeeked(videoElement) {
-            return new Promise(resolve => {
-                function onSeeked() {
-                    videoElement.removeEventListener('seeked', onSeeked);
-                    resolve();
-                }
-                videoElement.addEventListener('seeked', onSeeked);
-            });
-        }
-        
-        // Function to download the GIF
-        function downloadGif() {
-            if (!outputGifUrl) return;
+                };
+                
+                reader.onerror = function() {
+                    showStatus('Error reading video file.', 'error');
+                    resetUI();
+                };
+                
+                // Read the file as an array buffer
+                reader.readAsArrayBuffer(originalVideoBlob);
+            }
             
-            const filename = selectedFile.name.split('.').slice(0, -1).join('.') + '_pingpong.gif';
+            // Log a message to the log container
+            function logMessage(message) {
+                const line = document.createElement('div');
+                line.textContent = typeof message === 'object' ? JSON.stringify(message) : message;
+                logContainer.appendChild(line);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
             
-            const a = document.createElement('a');
-            a.href = outputGifUrl;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
+            // Reset UI after processing
+            function resetUI() {
+                isProcessing = false;
+                processBtn.disabled = false;
+                processBtn.textContent = 'Create MP4 Forward/Backward Video';
+            }
+            
+            // Helper function to show status messages
+            function showStatus(message, type) {
+                statusDiv.textContent = message;
+                
+                switch (type) {
+                    case 'error':
+                        statusDiv.style.backgroundColor = '#ffcccc';
+                        break;
+                    case 'success':
+                        statusDiv.style.backgroundColor = '#d4edda';
+                        break;
+                    case 'info':
+                        statusDiv.style.backgroundColor = '#fff3cd';
+                        break;
+                    default:
+                        statusDiv.style.backgroundColor = '#f8f9fa';
+                }
+            }
+        });
     </script>
 </body>
 </html>
