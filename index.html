@@ -3,489 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MP4 Ping-Pong Creator</title>
-    <!-- FFmpeg.wasm official packages -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg.js/3.1.9001/ffmpeg.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        .container {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .upload-section {
-            border: 2px dashed #ccc;
-            border-radius: 8px;
-            padding: 30px;
-            text-align: center;
-            margin-bottom: 20px;
-            transition: border-color 0.3s;
-        }
-        .upload-section:hover {
-            border-color: #888;
-        }
-        #videoPlayer {
-            width: 100%;
-            max-height: 450px;
-            margin: 20px 0;
-            display: none;
-        }
-        #uploadBtn {
-            display: none;
-        }
-        label[for="uploadBtn"] {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            cursor: pointer;
-            border-radius: 4px;
-            display: inline-block;
-            transition: background-color 0.3s;
-        }
-        label[for="uploadBtn"]:hover {
-            background-color: #45a049;
-        }
-        #processBtn {
-            background-color: #2196F3;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-            display: none;
-            width: 100%;
-        }
-        #processBtn:hover {
-            background-color: #0b7dda;
-        }
-        #processBtn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        #status {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-            text-align: center;
-            font-weight: bold;
-        }
-        #progressContainer {
-            width: 100%;
-            margin-top: 20px;
-            display: none;
-        }
-        progress {
-            width: 100%;
-            height: 20px;
-        }
-        #logContainer {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
-            display: none;
-        }
-        #videoInfo {
-            margin: 20px 0;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            display: none;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-        .info-label {
-            font-weight: bold;
-        }
-        .note {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #e6f7ff;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body>
-    <h1>MP4 Ping-Pong Creator</h1>
-    <div class="container">
-        <div class="upload-section" id="dropArea">
-            <p>Drag & drop your MP4 video or click to upload</p>
-            <input type="file" id="uploadBtn" accept="video/mp4">
-            <label for="uploadBtn">Choose Video File</label>
-        </div>
+    <title>Video Reverse Player</title>
+    <script type="module">
+        import { createFFmpeg, fetchFile } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.1/+esm';
         
-        <div id="videoInfo">
-            <div class="info-row">
-                <span class="info-label">Resolution:</span>
-                <span id="resolution">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Duration:</span>
-                <span id="duration">-</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Frame Rate:</span>
-                <span id="frameRate">-</span>
-            </div>
-        </div>
+        const ffmpeg = createFFmpeg({ log: true });
         
-        <video id="videoPlayer" controls></video>
-        
-        <button id="processBtn">Create MP4 Forward/Backward Video</button>
-        
-        <div id="progressContainer">
-            <p id="progressText">Processing video...</p>
-            <progress id="progressBar" value="0" max="100"></progress>
-        </div>
-        
-        <div id="status"></div>
-        
-        <div id="logContainer"></div>
-        
-        <div class="note">
-            <p><strong>Important:</strong> This tool uses FFmpeg.js to process videos in your browser. For optimal results:</p>
-            <ul>
-                <li>Use smaller videos (under 30 seconds) for faster processing</li>
-                <li>Processing happens entirely in your browser, using your computer's resources</li>
-                <li>Keep this tab open during processing</li>
-            </ul>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // DOM Elements
-            const uploadBtn = document.getElementById('uploadBtn');
-            const videoPlayer = document.getElementById('videoPlayer');
-            const dropArea = document.getElementById('dropArea');
-            const processBtn = document.getElementById('processBtn');
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            const statusDiv = document.getElementById('status');
-            const logContainer = document.getElementById('logContainer');
-            const videoInfo = document.getElementById('videoInfo');
-            const resolutionSpan = document.getElementById('resolution');
-            const durationSpan = document.getElementById('duration');
-            const frameRateSpan = document.getElementById('frameRate');
-            
-            // Variables
-            let originalVideoBlob = null;
-            let isProcessing = false;
-            let videoMetadata = {
-                width: 0,
-                height: 0,
-                duration: 0,
-                frameRate: 0
-            };
-            
-            // Handle file upload
-            uploadBtn.addEventListener('change', handleFileSelect);
-            
-            // Handle drag and drop
-            dropArea.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.style.borderColor = '#2196F3';
-            });
-            
-            dropArea.addEventListener('dragleave', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.style.borderColor = '#ccc';
-            });
-            
-            dropArea.addEventListener('drop', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                this.style.borderColor = '#ccc';
-                
-                if (e.dataTransfer.files.length) {
-                    uploadBtn.files = e.dataTransfer.files;
-                    handleFileSelect(e);
-                }
-            });
-            
-            // Process button click handler
-            processBtn.addEventListener('click', function() {
-                if (isProcessing) return;
-                if (!originalVideoBlob) {
-                    showStatus('Please upload a video first.', 'error');
-                    return;
-                }
-                
-                // Start processing
-                isProcessing = true;
-                processBtn.disabled = true;
-                processBtn.textContent = 'Processing...';
-                progressContainer.style.display = 'block';
-                logContainer.style.display = 'block';
-                showStatus('Creating ping-pong video... This may take a while.', 'info');
-                
-                // Create ping-pong video
-                createPingPongVideo();
-            });
-            
-            // Handle file selection
-            function handleFileSelect(e) {
-                const file = uploadBtn.files[0];
-                if (!file) return;
-                
-                if (file.type !== 'video/mp4') {
-                    showStatus('Please upload an MP4 video.', 'error');
-                    return;
-                }
-                
-                // Store the original video
-                originalVideoBlob = file;
-                
-                // Create a URL for the video
-                const videoURL = URL.createObjectURL(file);
-                videoPlayer.src = videoURL;
-                videoPlayer.style.display = 'block';
-                
-                // Get video metadata
-                videoPlayer.onloadedmetadata = function() {
-                    // Show process button
-                    processBtn.style.display = 'block';
-                    
-                    // Update video metadata
-                    videoMetadata.width = videoPlayer.videoWidth;
-                    videoMetadata.height = videoPlayer.videoHeight;
-                    videoMetadata.duration = videoPlayer.duration;
-                    
-                    // Estimate frame rate
-                    estimateFrameRate(videoPlayer, function(fps) {
-                        videoMetadata.frameRate = fps || 30;
-                        
-                        // Update video info display
-                        resolutionSpan.textContent = `${videoMetadata.width}×${videoMetadata.height}`;
-                        durationSpan.textContent = `${videoMetadata.duration.toFixed(2)} seconds`;
-                        frameRateSpan.textContent = `${videoMetadata.frameRate.toFixed(2)} fps`;
-                        
-                        // Show video info
-                        videoInfo.style.display = 'block';
-                        
-                        showStatus('Video loaded. Click the button below to create a forward/backward version.', 'success');
-                    });
-                };
-                
-                videoPlayer.onerror = function() {
-                    showStatus('Error loading video. Please try a different file.', 'error');
-                };
-            }
-            
-            // Estimate video frame rate
-            function estimateFrameRate(video, callback) {
-                const MAX_FRAMES = 10;
-                const timeSamples = [];
-                let frameCount = 0;
-                
-                video.currentTime = 0;
-                video.play();
-                
-                function captureFrame() {
-                    if (frameCount >= MAX_FRAMES) {
-                        video.pause();
-                        video.currentTime = 0;
-                        
-                        // Calculate average fps from time differences
-                        const timeDiffs = [];
-                        for (let i = 1; i < timeSamples.length; i++) {
-                            timeDiffs.push(timeSamples[i] - timeSamples[i-1]);
-                        }
-                        
-                        if (timeDiffs.length > 0) {
-                            const avgTimeDiff = timeDiffs.reduce((sum, diff) => sum + diff, 0) / timeDiffs.length;
-                            const fps = 1000 / avgTimeDiff;
-                            callback(fps);
-                        } else {
-                            callback(30); // Default fallback
-                        }
-                        return;
-                    }
-                    
-                    timeSamples.push(performance.now());
-                    frameCount++;
-                    
-                    requestAnimationFrame(captureFrame);
-                }
-                
-                requestAnimationFrame(captureFrame);
-            }
-            
-            // Create ping-pong video using FFmpeg.js
-            function createPingPongVideo() {
-                if (typeof FFmpeg === 'undefined') {
-                    showStatus('FFmpeg not available. Please try a different browser or check your internet connection.', 'error');
-                    resetUI();
-                    return;
-                }
-                
-                // Read the file
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        logMessage('Starting video processing...');
-                        progressBar.value = 5;
-                        
-                        // Convert file to Uint8Array
-                        const videoData = new Uint8Array(e.target.result);
-                        
-                        // Create worker
-                        logMessage('Initializing FFmpeg...');
-                        const worker = new FFmpeg({
-                            MEMFS: [{ name: "input.mp4", data: videoData }],
-                            arguments: [
-                                // Input file
-                                '-i', 'input.mp4',
-                                // Filter to create forward then reverse
-                                '-filter_complex', '[0:v]split[v1][v2];[v2]reverse[v2r];[v1][v2r]concat=n=2:v=1:a=0',
-                                // Output high quality MP4
-                                '-c:v', 'libx264',
-                                '-preset', 'medium',
-                                '-crf', '23',
-                                '-r', Math.round(videoMetadata.frameRate).toString(),
-                                '-pix_fmt', 'yuv420p',
-                                // Output file
-                                'output.mp4'
-                            ],
-                            // Print progress
-                            print: function(data) { 
-                                logMessage(data);
-                            },
-                            // Print errors
-                            printErr: function(data) { 
-                                logMessage('Error: ' + data);
-                            },
-                            // Progress update
-                            progress: function(progress) {
-                                if (progress.time) {
-                                    const percent = Math.min(95, (progress.time / (videoMetadata.duration * 2)) * 100);
-                                    progressBar.value = percent;
-                                    progressText.textContent = `Processing: ${percent.toFixed(1)}%`;
-                                }
-                            }
-                        });
-                        
-                        // Run the command
-                        logMessage('Processing video (this may take a while)...');
-                        worker.run().then(function(result) {
-                            logMessage('Processing complete!');
-                            progressBar.value = 98;
-                            
-                            // Find output file in memory
-                            const output = result.MEMFS.find(file => file.name === 'output.mp4');
-                            
-                            if (!output) {
-                                throw new Error('Output file not found');
-                            }
-                            
-                            // Create a blob from the processed data
-                            const processedBlob = new Blob([output.data], { type: 'video/mp4' });
-                            
-                            // Create download link
-                            const url = URL.createObjectURL(processedBlob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = 'ping_pong_video.mp4';
-                            document.body.appendChild(a);
-                            
-                            // Trigger download
-                            logMessage('Download starting...');
-                            a.click();
-                            
-                            // Clean up
-                            setTimeout(() => {
-                                document.body.removeChild(a);
-                                URL.revokeObjectURL(url);
-                            }, 100);
-                            
-                            // All done
-                            progressBar.value = 100;
-                            showStatus('MP4 ping-pong video created successfully!', 'success');
-                            
-                            // Reset UI after a delay
-                            setTimeout(resetUI, 2000);
-                        }).catch(function(error) {
-                            console.error('Processing error:', error);
-                            logMessage(`Error: ${error.message || error}`);
-                            showStatus('Error creating video. See log for details.', 'error');
-                            resetUI();
-                        });
-                    } catch (error) {
-                        console.error('Setup error:', error);
-                        logMessage(`Error: ${error.message || error}`);
-                        showStatus('Error setting up video processing. Try a different browser.', 'error');
-                        resetUI();
-                    }
-                };
-                
-                reader.onerror = function() {
-                    showStatus('Error reading video file.', 'error');
-                    resetUI();
-                };
-                
-                // Read the file as an array buffer
-                reader.readAsArrayBuffer(originalVideoBlob);
-            }
-            
-            // Log a message to the log container
-            function logMessage(message) {
-                const line = document.createElement('div');
-                line.textContent = typeof message === 'object' ? JSON.stringify(message) : message;
-                logContainer.appendChild(line);
-                logContainer.scrollTop = logContainer.scrollHeight;
-            }
-            
-            // Reset UI after processing
-            function resetUI() {
-                isProcessing = false;
-                processBtn.disabled = false;
-                processBtn.textContent = 'Create MP4 Forward/Backward Video';
-            }
-            
-            // Helper function to show status messages
-            function showStatus(message, type) {
-                statusDiv.textContent = message;
-                
-                switch (type) {
-                    case 'error':
-                        statusDiv.style.backgroundColor = '#ffcccc';
-                        break;
-                    case 'success':
-                        statusDiv.style.backgroundColor = '#d4edda';
-                        break;
-                    case 'info':
-                        statusDiv.style.backgroundColor = '#fff3cd';
-                        break;
-                    default:
-                        statusDiv.style.backgroundColor = '#f8f9fa';
-                }
+        document.getElementById("videoUpload").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                const video = document.getElementById("videoPlayer");
+                video.src = url;
             }
         });
+
+        document.getElementById("processVideo").addEventListener("click", async function() {
+            const videoFile = document.getElementById("videoUpload").files[0];
+            const status = document.getElementById("status");
+            const progressBar = document.getElementById("progressBar");
+            const downloadLink = document.getElementById("downloadLink");
+            
+            if (!videoFile) {
+                alert("Please upload a video first.");
+                return;
+            }
+            
+            status.textContent = "Initializing FFmpeg...";
+            progressBar.style.display = "block";
+            progressBar.value = 0;
+            
+            if (!ffmpeg.isLoaded()) {
+                await ffmpeg.load();
+            }
+            
+            status.textContent = "FFmpeg loaded. Processing video...";
+            
+            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
+            
+            ffmpeg.setProgress(({ ratio }) => {
+                progressBar.value = ratio * 100;
+            });
+            
+            await ffmpeg.run('-i', 'input.mp4', '-vf', 'reverse', '-preset', 'ultrafast', 'output.mp4');
+            
+            const outputData = ffmpeg.FS('readFile', 'output.mp4');
+            const blob = new Blob([outputData.buffer], { type: 'video/mp4' });
+            
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.style.display = "block";
+            downloadLink.textContent = "Download Processed Video";
+            
+            status.textContent = "Processing complete! Download your video.";
+            progressBar.style.display = "none";
+        });
     </script>
+</head>
+<body>
+    <h2>Upload a Video</h2>
+    <input type="file" id="videoUpload" accept="video/*">
+    <video id="videoPlayer" controls></video>
+    <button id="processVideo">Process Video</button>
+    <p id="status"></p>
+    <progress id="progressBar" value="0" max="100" style="width: 100%; display: none;"></progress>
+    <a id="downloadLink" style="display: none;" download="reversed_video.mp4">Download Processed Video</a>
 </body>
 </html>
